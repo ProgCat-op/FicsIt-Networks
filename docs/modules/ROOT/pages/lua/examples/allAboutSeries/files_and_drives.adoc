@@ -1,0 +1,209 @@
+= All about files & drives
+
+This example shows almost everything about the usage of files and drives.
+
+== Setup
+
+The components you have to install in your Computer Case:
+
+* Drive Holder
+* Drive
+* RAM
+
+== Drives
+
+=== Find all the Drives
+
+The code below should print all UUIDs of installed drives.
+
+[source,Lua]
+----
+-- Ready-to-GO!
+-- Just copy and paste in the EEPROM and run it.
+
+-- Shorten name
+fs = filesystem
+-- Initialize /dev
+if fs.initFileSystem("/dev") == false then
+    computer.panic("Cannot initialize /dev")
+end
+-- List all the drives
+for _, drive in pairs(fs.childs("/dev")) do
+    print(drive)
+end
+----
+
+You might notice there is a "serial" beside your drives, it is the console under the code editor. We recommend you to just ignoring it, or you can filtering it out as the code shown below.
+
+[source, Lua]
+----
+-- Ready-to-GO!
+-- Just copy and paste in the EEPROM and run it.
+
+-- Shorten name
+fs = filesystem
+-- Initialize /dev
+if fs.initFileSystem("/dev") == false then
+    computer.panic("Cannot initialize /dev")
+end
+
+drives = fs.childs("/dev")
+
+-- Filtering out "serial"
+for idx, drive in pairs(drives) do
+    if drive == "serial" then table.remove(drives, idx) end
+end
+
+-- List all the drives
+for i = 1, #drives do
+    print(drives[i])
+end
+----
+
+=== Mount a Drive
+
+This program shows how to mount your drive to the root mountpoint.
+
+[source, Lua]
+----
+-- Shorten name
+fs = filesystem
+-- Initialize /dev
+if fs.initFileSystem("/dev") == false then
+    computer.panic("Cannot initialize /dev")
+end
+
+disk_uuid = "Enter your drive's uuid"
+-- Mount our drive to root
+fs.mount("/dev/"..disk_uuid, "/")
+----
+
+Unfortunately, you can't unmount a drive because of Windows.
+
+=== Accessing Drives with Windows Explorer
+
+All drives are located at `%LocalAppData%\FactoryGame\Saved\SaveGames\Computers`, each folder represent a drive in game.
+
+== Files
+
+If you are beginner of FIN, you may want to read  <<Drives>> first.
+
+=== Basic file operations
+
+In this example, you will learn how to do basic file operations and some directory operations.
+
+The following code shows how to create a directory in the root, then create file in the directory we just created so we can write something to the file and finally read the content we just wrote.
+
+[source, Lua]
+----
+-- Ready-to-GO!
+-- Just copy and paste in the EEPROM and run it.
+
+-- [[
+    Before start, we have to mount our drive to root.
+]]
+
+-- Shorten name
+fs = filesystem
+
+-- Initialize /dev
+if fs.initFileSystem("/dev") == false then
+    computer.panic("Cannot initialize /dev")
+end
+-- Let say UUID of the drive is 7A4324704A53821154104A87BE5688AC
+disk_uuid = "7A4324704A53821154104A87BE5688AC"
+-- Mount our drive to root
+fs.mount("/dev/"..disk_uuid, "/")
+
+-- [[
+    Create a directory "coffee" in the root
+]]
+createDir("/coffee")
+
+-- [[
+    Create file called "latte.txt" in "coffee"
+]]
+local fp = fs:open("/coffee/latte.txt", "w")
+-- Check if file opened successfully
+if not fp then error("Cannot create file latte.txt")
+
+-- [[
+    Write content to "latte.txt"
+]]
+fp:write("milk, coffee and sugar\nDon't forget to stir it!")
+
+-- Close the file to prove nothing
+fp:close()
+
+-- [[
+    Reopen "latte.txt" to see the effects, this time we open it as read only mode
+    ]]
+fp = fs:open("/coffee/latte.txt", "r")
+-- Check if file opened successfully
+if not fp then error("Cannot create file latte.txt")
+
+-- [[
+    Read content from "latte.txt"
+]]
+local content = fp:read("*all") -- read all content from the file
+print(content) -- print it out
+
+-- It should print the text we wrote previously
+
+-- Release when you no longer need it
+fp:close()
+----
+
+=== Getting size of a file
+
+To get the size of a file, we can use `seek()` with "end" as parameter to know the length of the file.
+
+[source, Lua]
+----
+local fp = filesystem.open("Path of the file", "r")
+local file_size = fp:seek("end") 
+
+-- Release when you no longer need it
+fp:close()
+----
+
+TIPS: You shouldn't call `seek("end")` too frequently, it will hurts your FPS(Frame Per Second) so much!
+
+=== The `FileSystemUpdate` event
+
+An event called `FileSystemUpdate` will fire when you changed files or folders outside the game.
+
+The Signal looks like this:
+
+[source, Lua]
+----
+e, s, t, p = event.pull()
+----
+
+[cols="1,1,4a"]
+|===
+|Name |Type |Description
+
+|s
+|Instance
+|It should be Computer.
+
+|t
+|number
+|File type (0 = file, 1 = directory, 2 = other)
+
+|p
+|string
+|The path of updated file/directory
+
+|===
+
+== Related Work
+
+* https://pastebin.com/gMcYkDhR[Simple FicsIt-OS-2.0 boot loader - @Panakotta00]
+
+* https://pastebin.com/UQsyvXYs[Simple Filesystem Loader - @manaphoenix]
+* https://pastebin.com/LPCzUNmr[Threaded Filesystem Loader - @manaphoenix]
+
+
+[.small]#Author: @ProgCat#
