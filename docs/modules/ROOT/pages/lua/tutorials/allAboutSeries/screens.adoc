@@ -1,0 +1,20 @@
+= All about Screens
+
+=== 
+
+== Useful Tips
+
+=== The maximun size of Screen in characters
+
+A Screen can set size up to W300 x H100.
+
+=== `computer.getScreens` only return installed Screen Drivers
+
+In order to use Large Screen, you have to get it from `component.proxy` and `component.findComponent`. See xref:lua/api/Component.adoc[Component API] for details
+
+=== Weird thing about `setText`
+
+When you tinkering with `setText` and `fill`, you might encounter to having bars on the side of the screen unintentionally, it happens when you call `setText` with width or height from `gpu:getSize`,
+to get rid of the bars, all you need to do is make sure it didn't get call exceeded width-1 and height-1.
+
+== Related Work

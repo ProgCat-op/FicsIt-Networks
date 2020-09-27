@@ -76,3 +76,5 @@ t2 = thread.create(foo2)
 
 thread.run()
 ----
+
+include::partial$lua_examples_footer.adoc[]

@@ -204,6 +204,3 @@ e, s, t, p = event.pull()
 
 * https://pastebin.com/UQsyvXYs[Simple Filesystem Loader - @manaphoenix]
 * https://pastebin.com/LPCzUNmr[Threaded Filesystem Loader - @manaphoenix]
-
-
-[.small]#Author: @ProgCat#

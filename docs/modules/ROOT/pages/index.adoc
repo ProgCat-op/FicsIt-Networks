@@ -18,3 +18,5 @@ include::partial$computer_modules.adoc[]
 include::partial$apis.adoc[]
 
 include::partial$lua_examples.adoc[]
+
+include::partial$tutorials.adoc[]

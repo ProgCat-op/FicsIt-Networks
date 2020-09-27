@@ -1,0 +1,7 @@
+= All about Speakers
+
+== Play sound
+
+== Where to add my sound files?
+
+You can place your sound file to `%LocalAppData%\FactoryGame\Saved\SaveGames\Computers\Sounds` with Windows Explorer, notice it only support `.ogg` format.
