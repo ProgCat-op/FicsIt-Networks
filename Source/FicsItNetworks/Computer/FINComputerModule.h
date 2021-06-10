@@ -2,23 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "Buildables/FGBuildable.h"
-#include "ModuleSystem/FINModuleSystemModule.h"
-#include "ModuleSystem/FINModuleSystemPanel.h"
-#include "Network/Signals/FINSignalSender.h"
+#include "FicsItNetworks/ModuleSystem/FINModuleSystemModule.h"
+#include "FicsItNetworks/ModuleSystem/FINModuleSystemPanel.h"
+#include "FicsItNetworks/Network/Signals/FINSignalSender.h"
 
 #include "FINComputerModule.generated.h"
 
 UCLASS()
-class AFINComputerModule : public AFGBuildable, public IFINModuleSystemModule, public IFINSignalSender {
+class FICSITNETWORKS_API AFINComputerModule : public AFGBuildable, public IFINModuleSystemModule, public IFINSignalSender {
 	GENERATED_BODY()
 
 public:
-	/**
-    * The signal listeners listening to this component.
-    */
-    UPROPERTY()
-    TSet<FFINNetworkTrace> Listeners;
-    
 	UPROPERTY(EditDefaultsOnly, Category="ComputerModule")
 	FVector2D ModuleSize;
 
@@ -30,10 +24,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, SaveGame, Category="ComputerModule")
 	UFINModuleSystemPanel* ModulePanel = nullptr;
-
-	// Begin UObject
-	virtual void Serialize(FArchive& Ar) override;
-	// End UObject
 
 	// Begin AActor
 	virtual void EndPlay(EEndPlayReason::Type reason) override;
@@ -50,9 +40,6 @@ public:
 	// End IFINModuleSystemModule
 
 	// Begin IFINSignalSender
-	virtual void AddListener_Implementation(FFINNetworkTrace listener) override;
-	virtual void RemoveListener_Implementation(FFINNetworkTrace listener) override;
-	virtual TSet<FFINNetworkTrace> GetListeners_Implementation() override;
 	virtual UObject* GetSignalSenderOverride_Implementation() override;
 	// End IFINSignalSender
 };

@@ -2,9 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
-#include "FINModuleSystemModule.h"
 #include "FGInventoryLibrary.h"
-#include "util/Logging.h"
 
 #include "FINModuleSystemPanel.generated.h"
 
@@ -30,19 +28,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "ModuleSystem|Panel")
 	FFINModuleDelegate OnModuleChanged;
 
-	UPROPERTY(ReplicatedUsing=OnGridRep)
-	TArray<TWeakObjectPtr<UObject>> Grid;
-
-	UFUNCTION()
-	void OnGridRep() {
-		SML::Logging::error("Grid rep ", Grid.Num());
-	}
-
-	UFINModuleSystemPanel();
-	~UFINModuleSystemPanel();
+	UPROPERTY(Replicated)
+	TArray<UObject*> Grid;
 
 	// Begin UObject
 	void Serialize(FArchive& Ar) override;
+	virtual void InitializeComponent() override;
 	// End UObject
 
 	// Begin UActorComponent
@@ -97,8 +88,8 @@ public:
 	/**
 	 * Get Grid Slot at given location
 	 */
-	const TWeakObjectPtr<UObject>& GetGridSlot(int x, int y) const;
-	TWeakObjectPtr<UObject>& GetGridSlot(int x, int y);
+	UObject* GetGridSlot(int x, int y) const;
+	UObject*& GetGridSlot(int x, int y);
 
 	static void GetModuleSpace(const FVector& Loc, int Rot, const FVector& MSize, FVector& OutMin, FVector& OutMax);
 };

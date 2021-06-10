@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "FINModuleBase.h"
-#include "WidgetComponent.h"
-#include "Computer/FINComputerScreen.h"
+#include "Components/WidgetComponent.h"
+#include "FicsItNetworks/Computer/FINComputerScreen.h"
 #include "FINModuleScreen.generated.h"
 
 UCLASS()
@@ -48,10 +48,6 @@ public:
 	virtual TSharedPtr<SWidget> GetWidget() const override;
 	virtual void RequestNewWidget() override;
 	// End IFINScreen
-
-	// Begin IFINNetworkCustomType
-	virtual FString GetCustomTypeName_Implementation() const override { return TEXT("ModuleScreen"); }
-	// End IFINNetworkCustomType
 
 	UFUNCTION(NetMulticast, Reliable)
 	void OnGPUValidationChanged(bool bValid, UObject* newGPU);

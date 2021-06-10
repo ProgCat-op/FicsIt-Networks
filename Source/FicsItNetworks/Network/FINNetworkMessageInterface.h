@@ -1,20 +1,16 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "FINDynamicStructHolder.h"
-#include "FINNetworkTrace.h"
-#include "FINParameterList.h"
-#include "Interface.h"
-
+#include "FINNetworkValues.h"
 #include "FINNetworkMessageInterface.generated.h"
 
 class AFINNetworkCircuit;
 UINTERFACE(Blueprintable)
-class UFINNetworkMessageInterface : public UInterface {
+class FICSITNETWORKS_API UFINNetworkMessageInterface : public UInterface {
 	GENERATED_BODY()
 };
 
-class IFINNetworkMessageInterface {
+class FICSITNETWORKS_API IFINNetworkMessageInterface {
 	GENERATED_BODY()
 public:
 	/**
@@ -37,7 +33,7 @@ public:
 	 * @param[in]	Port			The port on which the message got sent
 	 * @param[in]	Data			The data frame of the message
 	 */
-	virtual void HandleMessage(FGuid ID, FGuid Sender, FGuid Receiver, int Port, const TFINDynamicStruct<FFINParameterList>& Data) {};
+	virtual void HandleMessage(const FGuid& ID, const FGuid& Sender, const FGuid& Receiver, int Port, const FINArray& Data) {};
 
 	/**
 	 * Allows to check if this network message handler is capable

@@ -1,6 +1,7 @@
 FicsIt-Networks [![Build Status](https://jenkins.massivebytes.net/job/FicsIt-Networks/job/master/badge/icon)](https://jenkins.massivebytes.net/job/FicsIt-Networks/job/master)
 ===============
 FicsIt-Networks is a mod for Satisfactory, written in C++/BP using Unreal Engine and the Satisfactory Modloader, which allows you to control, monitor, manage and automate each process of your factory by providing a network system and programmable computers, aswell as other I/O.
+It is inspired by [OpenComputers](https://github.com/MightyPirates/OpenComputers).
 
 **If you want to learn more:**
 [please visit the Documentation](https://docs.ficsit.app/ficsit-networks/0.0.1)
@@ -13,21 +14,23 @@ You can join our [discord server](https://discord.gg/3VfZ6Da) where you can get 
 Work In Progress
 ================
 This project is in no finished state!
-We are constantly working on features to get the mod to release soon.
-This doesn't mean you can't build the mod your self to test it though.
+We are constantly working on features to make the mod even greater.
 
 Want to test the Mod?
 =====================
 If you want to test the mod and so help with development,
-we would reccomend you to join the Satisfactory Modding Discord Server and contact one of the mod developers.
+we would reccomend you to join the [FicsIt-Networks Discord Server](https://discord.gg/3VfZ6Da) and contact one of the mod developers for a more in depth help.
 Testing means, it would not be a good idea to use the mod in your normal game state,
 testing means testing the mod in its own world to make sure every features works as intended.
 
 You can download the latest build version [here](https://jenkins.massivebytes.net/job/FicsIt-Networks/job/master).
 
+To install it, simply download the .zip artifact and extract the contents of it into the `<sf installation>/FactoryGame/Mods/FicsItNetworks` folder.
+It has to be this exact path and folder name! Extract it in a way, so the `.uplugin`-File is located within this folder.
+
 Streams
 =======
-The biggest part of making this mod does get stream at [CoderDE](https://twitch.tv/coderde).
+The biggest part of making this mod gets streamed at [Panakotta00's Twitch Channel](https://twitch.tv/panakotta00).
 
 You-Tube
 ========
@@ -61,6 +64,11 @@ Features
   Monitors and GPUs allow you to visualize data in multiple different forms. They also allow you to use montiors as user inputs like Keyboard, Mouse and Touch.
 - Vehicle Scanner
   Allows to interact with vehicles that pass over it. It also looks nice ;-)
+- Reflection System
+  The Reflection System allows to check data-types, functions, properties, signals and more. You can look up all sort of information and it helps you
+  for a more dynamic way to interact with the machines. This system also provides a abstraction layer so that further language implementations and such can get implemented more
+  easily and quicker. It also provides a dependency-less system so other mods can provide functionality that can be used by ficsit-networks.
+  It also provides the reflection viewer which is UI Widget allowing you to browse and explore the reflection data, like an ingame documentation.
 
 Dependencies
 ============
@@ -72,11 +80,9 @@ Roadmap
 =======
 You can find the detailed progress in the [project board](https://github.com/CoderDE/FicsIt-Networks/projects/1).
 
-- fixing some bugs
 - add new sensors (like player sensors)
 - microcontrollers
 - computer power consumption
-- tune and make improvements to general concepts and performance
 - adding support for a visual scripting language
 - port the mod to official mod kit (when released)
 (the list is dynamic and gets updated based on new ideas)

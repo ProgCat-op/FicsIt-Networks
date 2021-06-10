@@ -7,7 +7,7 @@
 struct FFileSystemNode;
 
 USTRUCT()
-struct FFileSystemNodeIndex {
+struct FICSITNETWORKS_API FFileSystemNodeIndex {
 	GENERATED_BODY()
 	
     TSharedPtr<FFileSystemNode> Node;
@@ -20,13 +20,20 @@ struct FFileSystemNodeIndex {
 
 	bool Serialize(FArchive& Ar);
 
-	FileSystem::SRef<FileSystem::Node> Deserialize(FString name, FileSystem::SRef<FileSystem::Directory> parent) const;
+	CodersFileSystem::SRef<CodersFileSystem::Node> Deserialize(FString name, CodersFileSystem::SRef<CodersFileSystem::Directory> parent) const;
 };
 
 FArchive& operator<<(FArchive& Ar, FFileSystemNodeIndex& Node);
 
+template<>
+struct TStructOpsTypeTraits<FFileSystemNodeIndex> : TStructOpsTypeTraitsBase2<FFileSystemNodeIndex> {
+	enum {
+		WithSerializer = true,
+    };
+};
+
 USTRUCT()
-struct FFileSystemNode {
+struct FICSITNETWORKS_API FFileSystemNode {
 	GENERATED_BODY()
 
 	/**
@@ -52,14 +59,21 @@ struct FFileSystemNode {
 
 	bool Serialize(FArchive& Ar);
 
-	FFileSystemNode& Deserialize(FileSystem::SRef<FileSystem::Device> device, const std::string& deviceName);
-	FFileSystemNode& Serialize(FileSystem::SRef<FileSystem::Device> device, const FileSystem::Path& path);
+	FFileSystemNode& Deserialize(CodersFileSystem::SRef<CodersFileSystem::Device> device, const std::string& deviceName);
+	FFileSystemNode& Serialize(CodersFileSystem::SRef<CodersFileSystem::Device> device, const CodersFileSystem::Path& path);
 };
 
 FArchive& operator<<(FArchive& Ar, FFileSystemNode& Node);
 
+template<>
+struct TStructOpsTypeTraits<FFileSystemNode> : TStructOpsTypeTraitsBase2<FFileSystemNode> {
+	enum {
+		WithSerializer = true,
+    };
+};
+
 USTRUCT()
-struct FFileSystemSerializationInfo {
+struct FICSITNETWORKS_API FFileSystemSerializationInfo {
 	GENERATED_BODY()
 
 	UPROPERTY()
@@ -67,4 +81,15 @@ struct FFileSystemSerializationInfo {
 
 	UPROPERTY()
 	TMap<FString, FFileSystemNode> Devices;
+
+	bool Serialize(FArchive& Ar);
+};
+
+FArchive& operator<<(FArchive& Ar, FFileSystemSerializationInfo& Info);
+
+template<>
+struct TStructOpsTypeTraits<FFileSystemSerializationInfo> : TStructOpsTypeTraitsBase2<FFileSystemSerializationInfo> {
+	enum {
+		WithSerializer = true,
+    };
 };

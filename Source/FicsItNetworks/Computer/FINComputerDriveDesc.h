@@ -1,12 +1,11 @@
 #pragma once
 
-#include "FGItemDescriptor.h"
-#include "tooltip/ItemTooltipHandler.h"
-
+#include "Resources/FGItemDescriptor.h"
+#include "Tooltip/SMLItemDisplayInterface.h"
 #include "FINComputerDriveDesc.generated.h"
 
 UCLASS()
-class UFINComputerDriveDesc : public UFGItemDescriptor, public ISMLItemDisplayInterface {
+class FICSITNETWORKS_API UFINComputerDriveDesc : public UFGItemDescriptor, public ISMLItemDisplayInterface {
 	GENERATED_BODY()
 
 public:

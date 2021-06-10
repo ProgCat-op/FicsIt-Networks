@@ -1,9 +1,8 @@
 #include "FINCodeableSplitter.h"
-
-#include "Computer/FINComputerSubsystem.h"
+#include "FicsItNetworks/FicsItNetworksModule.h"
+#include "FicsItNetworks/Computer/FINComputerSubsystem.h"
 
 AFINCodeableSplitter::AFINCodeableSplitter() {
-	RootComponent->SetMobility(EComponentMobility::Movable);
 	NetworkConnector = CreateDefaultSubobject<UFINAdvancedNetworkConnectionComponent>("NetworkConnector");
 	NetworkConnector->SetupAttachment(RootComponent);
 	NetworkConnector->SetMobility(EComponentMobility::Movable);
@@ -25,6 +24,11 @@ AFINCodeableSplitter::AFINCodeableSplitter() {
 	Output3->SetupAttachment(RootComponent);
 	Output3->SetMobility(EComponentMobility::Movable);
 
+	InputConnector = CreateDefaultSubobject<UFGFactoryConnectionComponent>("InputConnector");
+	InputConnector->SetDirection(EFactoryConnectionDirection::FCD_INPUT);
+	InputConnector->SetupAttachment(RootComponent);
+	InputConnector->SetMobility(EComponentMobility::Movable);
+	
 	mFactoryTickFunction.bCanEverTick = true;
 	mFactoryTickFunction.bStartWithTickEnabled = true;
 	mFactoryTickFunction.bRunOnAnyThread = true;
@@ -37,27 +41,27 @@ AFINCodeableSplitter::~AFINCodeableSplitter() {}
 
 void AFINCodeableSplitter::OnConstruction(const FTransform& transform) {
 	Super::OnConstruction(transform);
-#if !WITH_EDITOR
-	if (HasAuthority() && AFINComputerSubsystem::GetComputerSubsystem(this)->Version < EFINCustomVersion::FINCodeableSplitterAttachmentFixes) {
-		SML::Logging::warning("Old Splitter found. Try to apply construction update fixes... '", TCHAR_TO_UTF8(*this->GetName()), "'");
-		Input1->Rename(TEXT("InputConnector"));
-	}
-#endif
 }
 
 void AFINCodeableSplitter::BeginPlay() {
 	Super::BeginPlay();
-	if (HasAuthority() && AFINComputerSubsystem::GetComputerSubsystem(this)->Version < EFINCustomVersion::FINCodeableSplitterAttachmentFixes) {
-		SML::Logging::warning("Old Splitter found. Try to apply beginplay update fixes... '", TCHAR_TO_UTF8(*this->GetName()), "'");
-		Input1->Rename(TEXT("Input1"));
-		RootComponent->AddRelativeRotation(FRotator(0,-90.0f,0));
+	if (HasAuthority() && (InputConnector->GetConnection() || AFINComputerSubsystem::GetComputerSubsystem(this)->Version < EFINCustomVersion::FINCodeableSplitterAttachmentFixes)) {
+		UE_LOG(LogFicsItNetworks, Log, TEXT("Old Splitter found. Try to apply beginplay update fixes... '%s'"), *this->GetName());
+		UFGFactoryConnectionComponent* OldConnection = InputConnector->GetConnection();
+		InputConnector->ClearConnection();
+		Input1->SetConnection(OldConnection);
+		/*RootComponent->AddRelativeRotation(FRotator(0,-90.0f,0));
 		UFGFactoryConnectionComponent* NewOutput2 = Output1->GetConnection();
 		UFGFactoryConnectionComponent* NewOutput1 = Output2->GetConnection();
 		Output1->ClearConnection();
 		Output2->ClearConnection();
 		if (NewOutput1) Output1->SetConnection(NewOutput1);
-		if (NewOutput2) Output2->SetConnection(NewOutput2);
+		if (NewOutput2) Output2->SetConnection(NewOutput2);*/
 	}
+	InputConnector->RemoveFromRoot();
+	InputConnector->UnregisterComponent();
+	InputConnector->DestroyComponent();
+	InputConnector = nullptr;
 }
 
 void AFINCodeableSplitter::Factory_Tick(float dt) {
@@ -82,10 +86,12 @@ bool AFINCodeableSplitter::Factory_PeekOutput_Implementation(const UFGFactoryCon
 }
 
 bool AFINCodeableSplitter::Factory_GrabOutput_Implementation(UFGFactoryConnectionComponent* connection, FInventoryItem& out_item, float& out_OffsetBeyond, TSubclassOf<UFGItemDescriptor> type) {
-	TArray<FInventoryItem>& outputQueue = GetOutput(connection);
+	int32 Index = 0;
+	TArray<FInventoryItem>& outputQueue = GetOutput(connection, &Index);
 	if (outputQueue.Num() > 0) {
 		out_item = outputQueue[0];
 		outputQueue.RemoveAt(0);
+		netSig_ItemOutputted(Index, out_item);
 		return true;
 	}
 	return false;
@@ -103,18 +109,6 @@ void AFINCodeableSplitter::GetDismantleRefund_Implementation(TArray<FInventorySt
 
 void AFINCodeableSplitter::GatherDependencies_Implementation(TArray<UObject*>& out_dependentObjects) {
 	out_dependentObjects.Add(AFINComputerSubsystem::GetComputerSubsystem(this));
-}
-
-void AFINCodeableSplitter::AddListener_Implementation(FFINNetworkTrace listener) {
-	SignalListeners.Add(listener);
-}
-
-void AFINCodeableSplitter::RemoveListener_Implementation(FFINNetworkTrace listener) {
-	SignalListeners.Remove(listener);
-}
-
-TSet<FFINNetworkTrace> AFINCodeableSplitter::GetListeners_Implementation() {
-	return SignalListeners;
 }
 
 UObject* AFINCodeableSplitter::GetSignalSenderOverride_Implementation() {
@@ -146,6 +140,7 @@ bool AFINCodeableSplitter::netFunc_canOutput(int output) {
 }
 
 void AFINCodeableSplitter::netSig_ItemRequest_Implementation(const FInventoryItem& item) {}
+void AFINCodeableSplitter::netSig_ItemOutputted_Implementation(int output, const FInventoryItem& item) {}
 
 TArray<FInventoryItem>& AFINCodeableSplitter::GetOutput(int output) {
 	output = (output < 0) ? 0 : ((output > 2) ? 2 : output);
@@ -159,16 +154,19 @@ TArray<FInventoryItem>& AFINCodeableSplitter::GetOutput(int output) {
 	}
 }
 
-TArray<FInventoryItem>& AFINCodeableSplitter::GetOutput(UFGFactoryConnectionComponent* connection) {
-	return const_cast<TArray<FInventoryItem>&>(GetOutput((const UFGFactoryConnectionComponent*) connection));
+TArray<FInventoryItem>& AFINCodeableSplitter::GetOutput(UFGFactoryConnectionComponent* connection, int32* Index) {
+	return const_cast<TArray<FInventoryItem>&>(GetOutput((const UFGFactoryConnectionComponent*) connection, Index));
 }
 
-const TArray<FInventoryItem>& AFINCodeableSplitter::GetOutput(const UFGFactoryConnectionComponent* connection) const {
+const TArray<FInventoryItem>& AFINCodeableSplitter::GetOutput(const UFGFactoryConnectionComponent* connection, int32* Index) const {
 	if (connection == Output1) {
+		if (Index) *Index = 1;
 		return OutputQueue1;
-	} else if (connection == Output2) {
-		return OutputQueue2;
-	} else {
-		return OutputQueue3;
 	}
+	if (connection == Output2) {
+		if (Index) *Index = 0;
+		return OutputQueue2;
+	}
+	if (Index) *Index = 2;
+	return OutputQueue3;
 }

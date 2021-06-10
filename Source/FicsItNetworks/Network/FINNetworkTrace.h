@@ -1,8 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "util/Logging.h"
-
 #include "FINNetworkTrace.generated.h"
 
 /**
@@ -25,12 +23,7 @@ struct FICSITNETWORKS_API FFINNetworkTrace {
 private:
 	TSharedPtr<FFINNetworkTrace> Prev = nullptr;
 	TSharedPtr<FFINTraceStep, ESPMode::ThreadSafe> Step = nullptr;
-
-	UPROPERTY(SaveGame)
-	TWeakObjectPtr<UObject> Obj = nullptr;
-
-	UPROPERTY()
-	bool bDontAsk = false;
+	FWeakObjectPtr Obj = nullptr;
 
 public:
 	static TSharedPtr<FFINTraceStep, ESPMode::ThreadSafe> fallbackTraceStep;
@@ -52,8 +45,8 @@ public:
 	explicit FFINNetworkTrace(UObject* obj);
 	~FFINNetworkTrace();
 
-	bool Serialize(FArchive& Ar);
-//	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+	bool Serialize(FStructuredArchive::FSlot Slot);
+	void AddStructReferencedObjects(FReferenceCollector& ReferenceCollector) const;
 
 	/**
 	 * Creates a copy of this network trace and adds potentially a new optimal trace step
@@ -125,7 +118,12 @@ public:
 	/**
 	 * returns the underlying weak object ptr without any checks
 	 */
-	TWeakObjectPtr<UObject> GetUnderlyingPtr() const;
+	const FWeakObjectPtr& GetUnderlyingPtr() const;
+
+	/**
+	 * returns the starting object of the trace
+	 */
+	FWeakObjectPtr GetStartPtr() const;
 
 	/**
 	 * returns if the trace is valid or not
@@ -134,8 +132,12 @@ public:
 };
 
 inline FArchive& operator<<(FArchive& Ar, FFINNetworkTrace& trace) {
-	trace.Serialize(Ar);
+	trace.Serialize(FStructuredArchiveFromArchive(Ar).GetSlot());
 	return Ar;
+}
+
+inline void operator<<(FStructuredArchive::FSlot Slot, FFINNetworkTrace& Trace) {
+	Trace.Serialize(Slot);
 }
 
 FORCEINLINE uint32 GetTypeHash(const FFINNetworkTrace& Trace) {
@@ -145,7 +147,10 @@ FORCEINLINE uint32 GetTypeHash(const FFINNetworkTrace& Trace) {
 template<>
 struct TStructOpsTypeTraits<FFINNetworkTrace> : TStructOpsTypeTraitsBase2<FFINNetworkTrace> {
 	enum {
-		WithSerializer = true,
-//		WithNetSerializer = true,
+		WithStructuredSerializer = true,
+		WithAddStructReferencedObjects = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		
     };
 };

@@ -4,7 +4,6 @@
 #include "Misc/Guid.h"
 #include "FicsItNetworksCustomVersion.generated.h"
 
-
 UENUM(BlueprintType)
 enum EFINCustomVersion {
 	// Before any version changes were made
@@ -15,6 +14,9 @@ enum EFINCustomVersion {
 
 	// Codeable Splitter Attachment Fixes
 	FINCodeableSplitterAttachmentFixes,
+
+	// FicsIt-Kernel Refactor
+	FINKernelRefactor,
 
     // -----<new versions can be added above this line>-------------------------------------------------
     FINVersionPlusOne,

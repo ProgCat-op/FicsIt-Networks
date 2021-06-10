@@ -1,13 +1,7 @@
 #include "FINAdvancedNetworkConnectionComponent.h"
-
 #include "FINNetworkCircuit.h"
-#include "UnrealNetwork.h"
-
-UFINAdvancedNetworkConnectionComponent::UFINAdvancedNetworkConnectionComponent() {
-	SetIsReplicated(true);
-}
-
-UFINAdvancedNetworkConnectionComponent::~UFINAdvancedNetworkConnectionComponent() {}
+#include "Engine/World.h"
+#include "Net/UnrealNetwork.h"
 
 void UFINAdvancedNetworkConnectionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -43,7 +37,6 @@ bool UFINAdvancedNetworkConnectionComponent::ShouldSave_Implementation() const {
 }
 
 void UFINAdvancedNetworkConnectionComponent::NotifyNetworkUpdate_Implementation(int Type, const TSet<UObject*>& Nodes) {
-	if (Listeners.Num() < 1) return;
 	for (UObject* Node : Nodes) {
 		if (Node->GetClass()->ImplementsInterface(UFINNetworkComponent::StaticClass())) {
 			netSig_NetworkUpdate(Type, IFINNetworkComponent::Execute_GetID(Node).ToString());
@@ -76,24 +69,11 @@ bool UFINAdvancedNetworkConnectionComponent::AccessPermitted_Implementation(FGui
 	return true;
 }
 
-void UFINAdvancedNetworkConnectionComponent::AddListener_Implementation(FFINNetworkTrace Listener) {
-	if (Listeners.Contains(Listener)) return;
-	Listeners.Add(Listener);
-}
-
-void UFINAdvancedNetworkConnectionComponent::RemoveListener_Implementation(FFINNetworkTrace Listener) {
-	Listeners.Remove(Listener);
-}
-
-TSet<FFINNetworkTrace> UFINAdvancedNetworkConnectionComponent::GetListeners_Implementation() {
-	return Listeners;
-}
-
 UObject* UFINAdvancedNetworkConnectionComponent::GetSignalSenderOverride_Implementation() {
 	return this;
 }
 
-void UFINAdvancedNetworkConnectionComponent::HandleSignal(const TFINDynamicStruct<FFINSignal>& Signal, const FFINNetworkTrace& Sender) {
+void UFINAdvancedNetworkConnectionComponent::HandleSignal(const FFINSignalData& Signal, const FFINNetworkTrace& Sender) {
 	OnNetworkSignal.Broadcast(Signal, Sender);
 }
 
@@ -104,8 +84,8 @@ bool UFINAdvancedNetworkConnectionComponent::IsPortOpen(int Port) {
 	return false;
 }
 
-void UFINAdvancedNetworkConnectionComponent::HandleMessage(FGuid ID, FGuid Sender, FGuid Receiver, int Port, const ::TFINDynamicStruct<FFINParameterList>& Data) {
-	OnNetworkMessageRecieved.Broadcast(ID, Sender, Receiver, Port, Data);
+void UFINAdvancedNetworkConnectionComponent::HandleMessage(const FGuid& InID, const FGuid& Sender, const FGuid& Receiver, int Port, const TArray<FFINAnyNetworkValue>& Data) {
+	OnNetworkMessageRecieved.Broadcast(InID, Sender, Receiver, Port, Data);
 }
 
 bool UFINAdvancedNetworkConnectionComponent::IsNetworkMessageRouter() const {

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "Network/FINNetworkTrace.h"
+#include "FicsItNetworks/Network/FINNetworkTrace.h"
 #include "FGRailroadTimeTable.h"
-#include "FGBuildableRailroadStation.h"
+#include "Buildables/FGBuildableRailroadStation.h"
 #include "FINTimeTableStop.generated.h"
 
 /**
@@ -12,7 +12,7 @@
  * This is mainly used with in the kernel.
  */
 USTRUCT()
-struct FFINTimeTableStop {
+struct FICSITNETWORKS_API FFINTimeTableStop {
 	GENERATED_BODY()
 	
 	UPROPERTY(SaveGame)

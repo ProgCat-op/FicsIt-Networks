@@ -1,18 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
-#include "FGReplicationDetailInventoryComponent.h"
 #include "FINComputerGPU.h"
 #include "FINComputerScreen.h"
 #include "Buildables/FGBuildable.h"
-#include "Network/FINAdvancedNetworkConnectionComponent.h"
-#include "ModuleSystem/FINModuleSystemPanel.h"
-
-#include "FicsItKernel/FicsItKernel.h"
-#include "FicsItKernel/KernelSystemSerializationInfo.h"
-#include "FicsItKernel/Audio/AudioComponentController.h"
-#include "Network/FINNetworkCustomType.h"
+#include "FicsItNetworks/Network/FINAdvancedNetworkConnectionComponent.h"
+#include "FicsItNetworks/ModuleSystem/FINModuleSystemPanel.h"
+#include "FicsItNetworks/FicsItKernel/FicsItKernel.h"
+#include "FicsItNetworks/FicsItKernel/Processor/FINStateEEPROM.h"
 
 #include "FINComputerCase.generated.h"
 
@@ -21,18 +16,11 @@ class AFINComputerDriveHolder;
 class AFINComputerMemory;
 class AFINComputerProcessor;
 
-UENUM()
-enum EComputerState {
-	RUNNING,
-	SHUTOFF,
-	CRASHED
-};
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFINCaseEEPROMUpdateDelegate, AFINStateEEPROM*, EEPROM);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFINCaseFloppyUpdateDelegate, AFINFileSystemState*, Floppy);
 
 UCLASS(Blueprintable)
-class AFINComputerCase : public AFGBuildable, public IFINNetworkCustomType {
+class FICSITNETWORKS_API AFINComputerCase : public AFGBuildable {
 	GENERATED_BODY()
 
 public:
@@ -48,23 +36,24 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UAudioComponent* Speaker = nullptr;
 
-	UPROPERTY()
-	UFINAudioComponentControllerTrampoline* SpeakerTrampoline = nullptr;
-
 	UPROPERTY(SaveGame, Replicated)
 	FString SerialOutput = "";
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, SaveGame, Replicated)
 	int LastTabIndex = 0;
 	
-	UPROPERTY()
-	FKernelSystemSerializationInfo KernelState;
-	
-	FicsItKernel::KernelSystem* kernel = nullptr;
+	UPROPERTY(SaveGame)
+	UFINKernelSystem* Kernel = nullptr;
 
+	UPROPERTY(SaveGame)
+	UFINKernelNetworkController* NetworkController = nullptr;
+
+	UPROPERTY(SaveGame)
+	UFINKernelAudioController* AudioController = nullptr;
+	
 	// Cache
-	UPROPERTY()
-	TSet<AFINComputerProcessor*> Processors;
+	UPROPERTY(Replicated)
+	TArray<AFINComputerProcessor*> Processors;
 
 	UPROPERTY()
     TSet<AFINComputerMemory*> Memories;
@@ -88,22 +77,20 @@ public:
 	FFINCaseFloppyUpdateDelegate OnFloppyUpdate;
 
 	UPROPERTY(Replicated)
-	TEnumAsByte<EComputerState> InternalKernelState = EComputerState::SHUTOFF;
+	TEnumAsByte<EFINKernelState> InternalKernelState = FIN_KERNEL_SHUTOFF;
 
 	FString OldSerialOutput = "";
 
 	float KernelTickTime = 0.0;
 
 	AFINComputerCase();
-	~AFINComputerCase();
-
+	
 	// Begin UObject
-	virtual void Serialize(FArchive& ar) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// End UObject
 
 	// Begin AActor
-	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void OnConstruction(const FTransform& transform) override;
 	virtual void BeginPlay() override;
 	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 	// End AActor
@@ -115,15 +102,8 @@ public:
 	// Begin IFGSaveInterface
 	virtual bool ShouldSave_Implementation() const override;
 	virtual void GatherDependencies_Implementation(TArray<UObject*>& out_dependentObjects) override;
-	virtual void PreLoadGame_Implementation(int32 gameVersion, int32 engineVersion) override;
 	virtual void PostLoadGame_Implementation(int32 gameVersion, int32 engineVersion) override;
-	virtual void PreSaveGame_Implementation(int32 gameVersion, int32 engineVersion) override;
-	virtual void PostSaveGame_Implementation(int32 gameVersion, int32 engineVersion) override;
 	// End IFGSaveInterface
-
-	// Begin IFINNetworkCustomType
-	virtual FString GetCustomTypeName_Implementation() const override { return TEXT("Computer"); }
-	// End IFINNetworkCustomType
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void NetMulti_OnEEPROMChanged(AFINStateEEPROM* ChangedEEPROM);
@@ -192,17 +172,45 @@ public:
 	FString GetCrash();
 
 	UFUNCTION(BlueprintCallable, Category="Network|Computer")
-	EComputerState GetState();
+	EFINKernelState GetState();
 
 	UFUNCTION(BlueprintCallable, Category="Network|Computer")
     void WriteSerialInput(const FString& str);
 	
 	UFUNCTION(BlueprintCallable, Category="Network|Computer")
 	FString GetSerialOutput();
+	
+	UFUNCTION(BlueprintCallable, Category="Network|Computer")
+	AFINComputerProcessor* GetProcessor();
 
 	UFUNCTION()
-	void HandleSignal(const FFINDynamicStructHolder& signal, const FFINNetworkTrace& sender);
+	void HandleSignal(const FFINSignalData& signal, const FFINNetworkTrace& sender);
 
 	UFUNCTION()
 	void OnDriveUpdate(bool bOldLocked, AFINFileSystemState* drive);
+
+	UFUNCTION()
+    void netClass_Meta(FString& InternalName, FText& DisplayName) {
+		InternalName = TEXT("ComputerCase");
+		DisplayName = FText::FromString(TEXT("Computer Case"));
+	}
+
+	UFUNCTION()
+    void netSig_FileSystemUpdate(int Type, const FString& From, const FString& To) {}
+	UFUNCTION()
+    void netSigMeta_FileSystemUpdate(FString& InternalName, FText& DisplayName, FText& Description, TArray<FString>& ParameterInternalNames, TArray<FText>& ParameterDisplayNames, TArray<FText>& ParameterDescriptions, int32& Runtime) {
+		InternalName = "FileSystemUpdate";
+		DisplayName = FText::FromString("File System Update");
+		Description = FText::FromString("Triggers when something in the filesystem changes.");
+		ParameterInternalNames.Add("type");
+		ParameterDisplayNames.Add(FText::FromString("Type"));
+		ParameterDescriptions.Add(FText::FromString("The type of the change."));
+		ParameterInternalNames.Add("from");
+		ParameterDisplayNames.Add(FText::FromString("From"));
+		ParameterDescriptions.Add(FText::FromString("The file path to the FS node that has changed."));
+		ParameterInternalNames.Add("to");
+		ParameterDisplayNames.Add(FText::FromString("To"));
+		ParameterDescriptions.Add(FText::FromString("The new file path of the node if it has changed."));
+		Runtime = 1;
+	}
 };

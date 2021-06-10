@@ -1,13 +1,36 @@
 ﻿#include "FINScreenHolo.h"
 
-#include "FGBuildableFoundation.h"
-#include "FGBuildableWall.h"
+#include "FGColoredInstanceMeshProxy.h"
 #include "FINScreen.h"
-#include "UnrealNetwork.h"
+#include "Buildables/FGBuildableFoundation.h"
+#include "Buildables/FGBuildableWall.h"
 
 AFINScreenHolo::AFINScreenHolo() {
 	PrimaryActorTick.bCanEverTick = true;
 	SetActorTickEnabled(true);
+}
+
+void AFINScreenHolo::OnConstruction(const FTransform& Transform) {
+	Super::OnConstruction(Transform);
+	
+	// Clear Components
+	for (UStaticMeshComponent* comp : Parts) {
+		comp->UnregisterComponent();
+		comp->SetActive(false);
+		comp->DestroyComponent();
+	}
+	Parts.Empty();
+
+	// Create Components
+	UStaticMesh* MiddlePartMesh = Cast<AFINScreen>(mBuildClass->GetDefaultObject())->ScreenMiddle;
+	UStaticMesh* EdgePartMesh = Cast<AFINScreen>(mBuildClass->GetDefaultObject())->ScreenEdge;
+	UStaticMesh* CornerPartMesh = Cast<AFINScreen>(mBuildClass->GetDefaultObject())->ScreenCorner;
+	AFINScreen::SpawnComponents(UStaticMeshComponent::StaticClass(), ScreenWidth, ScreenHeight, MiddlePartMesh, EdgePartMesh, CornerPartMesh, this, RootComponent, Parts);
+	RootComponent->SetMobility(EComponentMobility::Movable);
+	for (UStaticMeshComponent* Part : Parts) {
+		Part->SetMobility(EComponentMobility::Movable);
+		Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 }
 
 void AFINScreenHolo::Tick(float DeltaSeconds) {
@@ -17,22 +40,7 @@ void AFINScreenHolo::Tick(float DeltaSeconds) {
 		OldScreenHeight = ScreenHeight;
 		OldScreenWidth = ScreenWidth;
 		
-		// Clear Components
-		for (UStaticMeshComponent* comp : Parts) {
-			comp->UnregisterComponent();
-			comp->SetActive(false);
-			comp->DestroyComponent();
-		}
-		Parts.Empty();
-
-		// Create Components
-		UStaticMesh* MiddlePartMesh = Cast<AFINScreen>(mBuildClass->GetDefaultObject())->ScreenMiddle;
-		UStaticMesh* EdgePartMesh = Cast<AFINScreen>(mBuildClass->GetDefaultObject())->ScreenEdge;
-		UStaticMesh* CornerPartMesh = Cast<AFINScreen>(mBuildClass->GetDefaultObject())->ScreenCorner;
-		AFINScreen::SpawnComponents(ScreenWidth, ScreenHeight, MiddlePartMesh, EdgePartMesh, CornerPartMesh, this, RootComponent, Parts);
-		for (UStaticMeshComponent* Part : Parts) {
-			Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		}
+		RerunConstructionScripts();
 	}
 }
 
@@ -102,20 +110,21 @@ void AFINScreenHolo::SetHologramLocationAndRotation(const FHitResult& hitResult)
 		ScreenHeight = 1;
 		ScreenWidth = 1;
 		FTransform SnappedActorTransform = FTransform();
+		FVector UpVector = FVector(1,0,0);
 		if (AActor* SnappedActor = hitResult.GetActor()) {
 			SnappedActorTransform = SnappedActor->GetActorTransform();
 		}
-		FVector UpVector = FVector(1,0,0);
-		FVector RotationAxis = FVector::CrossProduct(UpVector, Normal);
-		RotationAxis.Normalize();
-
-		float DotProduct = FVector::DotProduct(UpVector, Normal);
-		float RotationAngle = acosf(DotProduct);
-
-		FQuat Quat = FQuat(RotationAxis, RotationAngle);
-
+		FQuat Quat;
+		if (FVector::Coincident(UpVector * -1, Normal) || FVector::Coincident(UpVector, Normal)) {
+			Quat = Normal.ToOrientationQuat();
+		} else {
+			FVector RotationAxis = FVector::CrossProduct(UpVector, Normal);
+			RotationAxis.Normalize();
+			float DotProduct = FVector::DotProduct(UpVector, Normal);
+			float RotationAngle = acosf(DotProduct);
+			Quat = FQuat(RotationAxis, RotationAngle);
+		}
 		FQuat NewQuat = Quat * FRotator(0, 0, GetScrollRotateValue()).Quaternion();
-
 		SetActorLocationAndRotation(hitResult.ImpactPoint, NewQuat.Rotator());
 	}
 }

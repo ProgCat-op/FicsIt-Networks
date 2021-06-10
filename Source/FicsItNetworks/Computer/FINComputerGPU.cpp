@@ -1,10 +1,6 @@
 ﻿#include "FINComputerGPU.h"
 
-
-#include "UnrealNetwork.h"
-#include "WidgetInteractionComponent.h"
-#include "Graphics/FINScreenInterface.h"
-#include "Private/KismetTraceUtils.h"
+#include "FicsItNetworks/Graphics/FINScreenInterface.h"
 
 AFINComputerGPU::AFINComputerGPU() {
 	SetActorTickEnabled(true);
@@ -28,8 +24,6 @@ void AFINComputerGPU::BeginPlay() {
 void AFINComputerGPU::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction) {
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
 
-	DrawDebugLine(this->GetWorld(), GetActorLocation(), GetActorLocation() + FVector(0,0,1000000), FColor::Red, true);
-	
 	if (HasAuthority() && (((bool)ScreenPtr) != Screen.IsValid())) {
 		if (!ScreenPtr) ScreenPtr = Screen.Get();
 		OnValidationChanged(Screen.IsValid(), ScreenPtr);
@@ -144,6 +138,8 @@ void UFINScreenWidget::ReleaseSlateResources(bool bReleaseChildren) {
 
 TSharedRef<SWidget> UFINScreenWidget::RebuildWidget() {
 	Container = SNew(SBox);
+	Container->SetHAlign(HAlign_Center);
+	Container->SetVAlign(VAlign_Center);
 	OnNewWidget();
 	return Container.ToSharedRef();
 }

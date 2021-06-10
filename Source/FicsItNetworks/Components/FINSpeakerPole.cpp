@@ -1,14 +1,9 @@
 #include "FINSpeakerPole.h"
 
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-
+#include "AudioCompressionSettingsUtils.h"
 #include "Developer/TargetPlatform/Public/Interfaces/IAudioFormat.h"
 #include "VorbisAudioInfo.h"
-#include "FicsItKernel/Processor/Lua/LuaStructs.h"
-
-#include "SML/util/Logging.h"
+#include "FicsItNetworks/FicsItNetworksModule.h"
 
 AFINSpeakerPole::AFINSpeakerPole() {
 	NetworkConnector = CreateDefaultSubobject<UFINAdvancedNetworkConnectionComponent>("NetworkConnector");
@@ -17,19 +12,6 @@ AFINSpeakerPole::AFINSpeakerPole() {
 	AudioComponent = CreateDefaultSubobject<UAudioComponent>("AudioComponent");
 	AudioComponent->SetupAttachment(RootComponent);
 	AudioComponent->OnAudioFinishedNative.AddUObject(this, &AFINSpeakerPole::OnSoundFinished);
-}
-
-void AFINSpeakerPole::AddListener_Implementation(FFINNetworkTrace listener) {
-	if (Listeners.Contains(listener)) return;
-	Listeners.Add(listener);
-}
-
-void AFINSpeakerPole::RemoveListener_Implementation(FFINNetworkTrace listener) {
-	Listeners.Remove(listener);
-}
-
-TSet<FFINNetworkTrace> AFINSpeakerPole::GetListeners_Implementation() {
-	return Listeners;
 }
 
 UObject* AFINSpeakerPole::GetSignalSenderOverride_Implementation() {
@@ -52,75 +34,110 @@ void AFINSpeakerPole::StopSound_Implementation() {
 	CurrentSound = "";
 }
 
-void AFINSpeakerPole::OnSoundFinished(UAudioComponent* AudioComponent) {
+void AFINSpeakerPole::OnSoundFinished(UAudioComponent* InAudioComponent) {
 	netSig_SpeakerSound(2, CurrentSound);
 	CurrentSound = "";
 }
 
-void FFINSpeakersPlaySoundFuture::Execute() {
-	bDone = true;
-	Speakers->PlaySound(Sound, Start);
+void AFINSpeakerPole::netClass_Meta(FString& InternalName, FText& DisplayName, FText& Description) {
+	InternalName = "SpeakerPole";
+	DisplayName = FText::FromString("Speaker Pole");
+	Description = FText::FromString("This speaker pole allows to play custom sound files, In-Game");
 }
 
-FFINSpeakersPlaySoundFuture AFINSpeakerPole::netFunc_playSound(const FString& sound, float startPoint) {
-	return FFINSpeakersPlaySoundFuture(this, sound, startPoint);
+void AFINSpeakerPole::netFunc_playSound(const FString& sound, float startPoint) {
+	PlaySound(sound, startPoint);
 }
 
-void FFINSpeakersStopSoundFuture::Execute() {
-	bDone = true;
-	Speakers->StopSound();
+void AFINSpeakerPole::netFuncMeta_playSound(FString& InternalName, FText& DisplayName, FText& Description, TArray<FString>& ParameterInternalNames, TArray<FText>& ParameterDisplayNames, TArray<FText>& ParameterDescriptions, int32& Runtime) {
+	InternalName = "playSound";
+	DisplayName = FText::FromString("Play Sound");
+	Description = FText::FromString("Plays a custom sound file ingame");
+	ParameterInternalNames.Add("sound");
+	ParameterDisplayNames.Add(FText::FromString("Sound"));
+	ParameterDescriptions.Add(FText::FromString("The sound file (without the file ending) you want to play"));
+	ParameterInternalNames.Add("startPoint");
+	ParameterDisplayNames.Add(FText::FromString("Start Point"));
+	ParameterDescriptions.Add(FText::FromString("The start point in seconds at which the system should start playing"));
+	Runtime = 0;
 }
 
-FFINDynamicStructHolder AFINSpeakerPole::netFunc_stopSound() {
-	return FFINSpeakersStopSoundFuture(this);
+void AFINSpeakerPole::netFunc_stopSound() {
+	StopSound();
+}
+
+void AFINSpeakerPole::netFuncMeta_stopSound(FString& InternalName, FText& DisplayName, FText& Description, TArray<FString>& ParameterInternalNames, TArray<FText>& ParameterDisplayNames, TArray<FText>& ParameterDescriptions, int32& Runtime) {
+	InternalName = "stopSound";
+	DisplayName = FText::FromString("Stop Sound");
+	Description = FText::FromString("Stops the currently playing sound file.");
+	Runtime = 0;
 }
 
 void AFINSpeakerPole::netSig_SpeakerSound_Implementation(int type, const FString& sound) {}
 
-USoundWave* AFINSpeakerPole::LoadSoundFromFile(const FString& sound) {
-	FString fsp = UFGSaveSystem::GetSaveDirectoryPath();
+void AFINSpeakerPole::netSigMeta_SpeakerSound(FString& InternalName, FText& DisplayName, FText& Description, TArray<FString>& ParameterInternalNames, TArray<FText>& ParameterDisplayNames, TArray<FText>& ParameterDescriptions, int32& Runtime) {
+	InternalName = "SpeakerSound";
+	DisplayName = FText::FromString("SpeakerSound");
+	Description = FText::FromString("Triggers when the sound play state of the speaker pole changes.");
+	ParameterInternalNames.Add("type");
+	ParameterDisplayNames.Add(FText::FromString("Type"));
+	ParameterDescriptions.Add(FText::FromString("The type of the speaker pole event."));
+	ParameterInternalNames.Add("sound");
+	ParameterDisplayNames.Add(FText::FromString("Sound"));
+	ParameterDescriptions.Add(FText::FromString("The sound file including in the event."));
+	Runtime = 1;
+}
 
-	auto file = sound + TEXT(".ogg");
-	auto path = std::experimental::filesystem::path(*file);
+USoundWave* AFINSpeakerPole::LoadSoundFromFile(const FString& InSound) {
+    FString fsp;
+	// TODO: Get UFGSaveSystem::GetSaveDirectoryPath() working
+    if (fsp.IsEmpty()) {
+        fsp = FPaths::Combine( FPlatformProcess::UserSettingsDir(), FApp::GetProjectName(), TEXT( "Saved/" ) TEXT( "SaveGames/" ) );
+    }
+	
+	IPlatformFile& FileManager = FPlatformFileManager::Get().GetPlatformFile();
+	
+	FString SoundsFolderPath = FPaths::Combine(fsp, TEXT("Computers/Sounds"));
 
-	std::experimental::filesystem::path root = *fsp;
-	root /= "Computers/Sounds";
-	std::experimental::filesystem::create_directories(root);
-	auto pathToFile = root / path;
-	pathToFile = std::experimental::filesystem::absolute(pathToFile);
-	auto ps = pathToFile.string();
-	if (ps.rfind(std::experimental::filesystem::absolute(root).string(), 0) != 0 || !std::experimental::filesystem::exists(pathToFile)) {
+	FileManager.CreateDirectoryTree(*SoundsFolderPath);
+	
+	FString FilePath = FileManager.ConvertToAbsolutePathForExternalAppForRead(*FPaths::Combine(SoundsFolderPath, InSound + TEXT(".ogg")));
+	if (!FilePath.StartsWith(SoundsFolderPath)) {
+		UE_LOG(LogFicsItNetworks, Warning, TEXT("Tried to load sound from '%s' but outside of sounds folder."), *FilePath);
+		return nullptr;
+	}
+
+	TArray<uint8> DataArray;
+	if (!FFileHelper::LoadFileToArray(DataArray, *FilePath)) {
+		UE_LOG(LogFicsItNetworks, Warning, TEXT("Sound file '%s' not found in sounds folder."), *FilePath);
 		return nullptr;
 	}
 
 	USoundWave* sw = NewObject<USoundWave>();
 	if (!sw) return nullptr;
-	bool loaded = false;
-	std::fstream f;
-	f.open(pathToFile, std::fstream::in | std::fstream::binary);
-	std::stringstream strs;
-	strs << f.rdbuf();
-	auto s = strs.str();
-	FByteBulkData& data = sw->CompressedFormatData.GetFormat(L"OGG");
-	data.Lock(0x2);
-	memcpy(data.Realloc(s.size()), s.data(), s.size());
-	data.Unlock();
-	
-	FSoundQualityInfo info;
-	FVorbisAudioInfo* vorbis_obj = new FVorbisAudioInfo();
-	if (!vorbis_obj->ReadCompressedInfo((const uint8*) s.data(), (unsigned int)s.size(), &info)) {
-		return nullptr;
+
+	FName Format = TEXT("OGG");
+	const FPlatformAudioCookOverrides* CompressionOverrides = FPlatformCompressionUtilities::GetCookOverrides();
+	if (CompressionOverrides) {
+		FString HashedString = *Format.ToString();
+		FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
+		Format = *HashedString;
 	}
 
-	sw->SoundGroup = ESoundGroup::SOUNDGROUP_Default;
-	sw->NumChannels = info.NumChannels;
-	sw->Duration = info.Duration;
-	sw->RawPCMDataSize = info.SampleDataSize;
-	sw->SetSampleRate(info.SampleRate);
+	FByteBulkData* BulkData = &sw->CompressedFormatData.GetFormat(Format);
 
-	sw->bVirtualizeWhenSilent = true;
+	BulkData->Lock(LOCK_READ_WRITE);
+	FMemory::Memcpy(BulkData->Realloc(DataArray.Num()), DataArray.GetData(), DataArray.Num());
+	BulkData->Unlock();
 
-	delete vorbis_obj;
+	FSoundQualityInfo Quality; 
+	FVorbisAudioInfo Vorbis;
+	if (!Vorbis.ReadCompressedInfo(DataArray.GetData(), DataArray.Num(), &Quality)) return nullptr;
+	sw->SetSampleRate(Quality.SampleRate);
+	sw->Duration = Quality.Duration;
+	sw->NumChannels = Quality.NumChannels;
+	sw->RawPCMDataSize = Quality.SampleDataSize;
+	sw->SoundGroup = SOUNDGROUP_Default;
 
 	return sw;
 }

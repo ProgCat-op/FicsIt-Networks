@@ -5,11 +5,11 @@
 #include "FINComputerCase.h"
 #include "FINComputerDriveHolder.h"
 #include "FINComputerGPUT1.h"
-#include "FicsItKernel/Processor/Lua/FINStateEEPROMLua.h"
+#include "FicsItNetworks/FicsItKernel/Processor/Lua/FINStateEEPROMLua.h"
 #include "FINComputerRCO.generated.h"
 
 UCLASS(Blueprintable)
-class UFINComputerRCO : public UFGRemoteCallObject {
+class FICSITNETWORKS_API UFINComputerRCO : public UFGRemoteCallObject {
 	GENERATED_BODY()
 	
 public:

@@ -1,20 +1,8 @@
 #include "FINComponentUtility.h"
 
-#include "WindowsPlatformApplicationMisc.h"
-#include "EngineGlobals.h"
-#include "VorbisAudioInfo.h"
-//#include "Interfaces/IAudioFormat.h"
-
-#include "FGSaveSystem.h"
 #include "FGPlayerController.h"
-
 #include "Network/FINNetworkAdapter.h"
-
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-
-bool UFINComponentUtility::bAllowUsing = true;
+#include "Windows/WindowsPlatformApplicationMisc.h"
 
 UFINNetworkConnectionComponent* UFINComponentUtility::GetNetworkConnectorFromHit(FHitResult hit) {
 	if (!hit.bBlockingHit) return nullptr;
@@ -55,13 +43,4 @@ UFINNetworkConnectionComponent* UFINComponentUtility::GetNetworkConnectorFromHit
 
 void UFINComponentUtility::ClipboardCopy(FString str) {
 	FWindowsPlatformApplicationMisc::ClipboardCopy(*str);
-}
-
-void UFINComponentUtility::SetAllowUsing(UObject* WorldContextObject, bool newUsing) {
-	if (!newUsing) {
-		// Cast<AFGCharacterPlayer>(WorldContextObject->GetWorld()->GetFirstPlayerController()->GetCharacter())->SetBestUableActor(nullptr);
-		// TODO: Find workaround if needed
-	}
-
-	bAllowUsing = newUsing;
 }

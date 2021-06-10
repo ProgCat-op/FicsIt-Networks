@@ -2,9 +2,13 @@
 
 #include "Modules/ModuleManager.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogFicsItNetworks, Log, Log);
+
 class FFicsItNetworksModule : public FDefaultGameModuleImpl
 {
 public:
+	static FDateTime GameStart;
+	
 	/**
 	* Called when the module is loaded into memory
 	**/
